@@ -5,11 +5,39 @@
 using namespace BinSearch;
 
 void dequantize_cpu(float* code, unsigned char* A, float* absmax, float* out, long long blocksize, long long n) {
-    for (long long block_idx = 0; block_idx < n; block_idx += blocksize) {
-        long long valid_items = n - block_idx >= blocksize ? blocksize : n - block_idx;
-        long long block_end = block_idx + valid_items;
-        for (long long i = block_idx; i < block_end; i++)
-            out[i] = code[A[i]] * absmax[block_idx / blocksize];
+    long long num_blocks = n / blocksize;
+    num_blocks += n % blocksize == 0 ? 0 : 1;
+
+    int thread_wave_size = 1;
+    for (long long offset = 0; offset < num_blocks; offset += thread_wave_size) {
+        long long valid_chunks = num_blocks - offset >= thread_wave_size ? thread_wave_size : num_blocks - offset;
+        std::vector<std::thread> threads(valid_chunks);
+        std::vector<dequantize_block_args> args(valid_chunks);
+
+        int chunks_processed = 0;
+        for (long long block_idx = offset * blocksize; block_idx < n; block_idx += blocksize) {
+            long long valid_items = n - block_idx >= blocksize ? blocksize : n - block_idx;
+            long long block_end = block_idx + valid_items;
+
+            struct dequantize_block_args& arg = args[chunks_processed];
+            arg.code = code;
+            arg.A = A;
+            arg.absmax = absmax;
+            arg.out = out;
+            arg.block_end = block_end;
+            arg.block_idx = block_idx;
+            arg.threadidx = block_idx / blocksize;
+            arg.blocksize = blocksize;
+
+            threads[chunks_processed] = std::thread([arg] { dequantize_block(arg); });
+            chunks_processed += 1;
+            if (chunks_processed == valid_chunks) {
+                break;
+            }
+        }
+
+        for (int i = 0; i < valid_chunks; i++)
+            threads[i].join();
     }
 }
 

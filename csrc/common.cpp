@@ -1,6 +1,15 @@
 #include <common.h>
 #include <float.h>
 
+void dequantize_block(const dequantize_block_args& args) {
+    // 1. lookup values
+    // 2. denormalize by absmax for that block
+    // 3. store the dequantized values
+    for (long long i = args.block_idx; i < args.block_end; i++) {
+        args.out[i] = args.code[args.A[i]] * args.absmax[args.block_idx / args.blocksize];
+    }
+}
+
 void quantize_block(const quantize_block_args& args) {
     // 1. find absmax in block
     // 2. divide input value by absmax to normalize into [-1.0, 1.0]
