@@ -95,16 +95,9 @@ def main():
                 for blocksize in BLOCKSIZE:
                     for tensor_shape in TENSOR_SHAPE:
                         A1 = torch.randn(tensor_shape, tensor_shape, device=device, dtype=dtype)
-                        print(f"[{device}-{tensor_shape}-{dtype}-{quant_type}-{blocksize}]: ", flush=True, end="")
-                        elapsed2 = stress_test_2(A1, quant_type, blocksize, ITERATIONS, WARMUP_ITER)
-                        elapsed3, elapsed4 = stress_test_3(A1, quant_type, blocksize, ITERATIONS, WARMUP_ITER)
-                        print(
-                            {
-                                "total_quantize_dequantize_interleaved_time": elapsed2,
-                                "total_quantize_time": elapsed3,
-                                "total_dequantize_time": elapsed4,
-                            }
-                        )
+                        print(f"[{device}-{tensor_shape}-{dtype}-{quant_type}-{blocksize}]: ", flush=True)
+                        stress_test_2(A1, quant_type, blocksize, ITERATIONS, WARMUP_ITER)
+                        stress_test_3(A1, quant_type, blocksize, ITERATIONS, WARMUP_ITER)
     save_metadata()
 
 
