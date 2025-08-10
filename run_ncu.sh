@@ -21,8 +21,8 @@ nvidia-smi -c EXCLUSIVE_PROCESS        # restrict to only one process can create
 # I chose these value based on my rtx 2060 mobile
 # run nvidia-smi -q -d SUPPORTED_CLOCKS to know the possible ranges for your gpu
 # doesn't work on windows nor Vast.ai
-# nvidia-smi -lgc 2100,2100              # set min and max graphics freq in MHz
-# nvidia-smi -lmc 5001                   # set memory freq in MHz
+nvidia-smi -lgc 2100,2100              # set min and max graphics freq in MHz
+nvidia-smi -lmc 5001                   # set memory freq in MHz
 
 # define the metrics to include in the ncu report
 metrics="gpu__time_duration_measured_user,sm__throughput.avg.pct_of_peak_sustained_elapsed,dram__throughput.avg.pct_of_peak_sustained_elapsed,smsp__sass_branch_instructions_executed.sum,smsp__sass_branch_targets_threads_divergent.sum,sm__achieved_occupancy.avg.pct_of_peak_sustained_active,inst_executed.sum,sm__warps_eligible_per_cycle.avg"
