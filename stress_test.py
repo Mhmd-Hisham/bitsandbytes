@@ -30,13 +30,13 @@ TENSOR_SHAPE = [1024, 2048, 4096, 8192, 16384]
 
 ###########################################################
 ################ For testing the script ###################
-ITERATIONS = 1
-WARMUP_ITER = 1
-DEVICE = ["cuda"]
-DTYPE = [torch.float32]
-QUANT_TYPE = ["fp4"]
-BLOCKSIZE = [64]
-TENSOR_SHAPE = [1024]
+# ITERATIONS = 1
+# WARMUP_ITER = 1
+# DEVICE = ["cuda"]
+# DTYPE = [torch.float32]
+# QUANT_TYPE = ["fp4"]
+# BLOCKSIZE = [64]
+# TENSOR_SHAPE = [1024]
 ###########################################################
 
 
