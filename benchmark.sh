@@ -43,6 +43,10 @@ mv bitsandbytes bitsandbytes_fork
 
 # clone original repo
 git clone https://github.com/bitsandbytes-foundation/bitsandbytes.git
+
+# move the stress test to the baseline repo
+mv stress_test.py bitsandbytes/
+
 cd bitsandbytes
 
 # build for cuda
@@ -55,6 +59,7 @@ python stress_test.py "../benchmark_results/baseline_kernel_run1.csv"
 python stress_test.py "../benchmark_results/baseline_kernel_run2.csv"
 python stress_test.py "../benchmark_results/baseline_kernel_run3.csv"
 mv stress_test_metadata.csv "../benchmark_results/stress_test_metadata.csv"
+mv stress_test.py ../benchmark_results/stress_test.py
 
 cd ..
 
