@@ -21,34 +21,34 @@
 #define NUM 4
 #define NUM_BLOCK 4096
 
-__device__ static float fp4_quantization_pivots[8] = {
-    0.0f,        // 0b000
-    0.00260417f, // 0b001
-    0.08593750f, // 0b010
-    0.20833333f, // 0b011
-    0.29166667f, // 0b100
-    0.41666670f, // 0b101
-    0.58333300f, // 0b110
-    0.83333330f, // 0b111
+__device__ static half fp4_quantization_pivots[8] = {
+    __half_raw{0x0000}, // -> 0.0        [0b000]
+    __half_raw{0x1955}, // -> 0.00260417 [0b001]
+    __half_raw{0x2d80}, // -> 0.08593750 [0b010]
+    __half_raw{0x32ab}, // -> 0.20833333 [0b011]
+    __half_raw{0x34ab}, // -> 0.29166667 [0b100]
+    __half_raw{0x36ab}, // -> 0.41666670 [0b101]
+    __half_raw{0x38ab}, // -> 0.58333300 [0b110]
+    __half_raw{0x3aab}  // -> 0.83333330 [0b111]
 };
 
-__device__ static float nf4_quantization_pivots[16] = {
-    -1.0f,                  // 0b0000
-    -0.8480964004993439f,   // 0b0001
-    -0.6106329262256622f,   // 0b0010
-    -0.4599952697753906f,   // 0b0011
-    -0.33967943489551544f,  // 0b0100
-    -0.23460740596055984f,  // 0b0101
-    -0.13791173323988914f,  // 0b0110
-    -0.045525018125772476f, // 0b0111
-    0.03979014977812767f,   // 0b1000
-    0.1202552504837513f,    // 0b1001
-    0.2035212516784668f,    // 0b1010
-    0.2920137718319893f,    // 0b1011
-    0.3893125355243683f,    // 0b1100
-    0.5016634166240692f,    // 0b1101
-    0.6427869200706482f,    // 0b1110
-    0.8614784181118011f,    // 0b1111
+__device__ static half nf4_quantization_pivots[16] = {
+    __half_raw{0xbc00}, // -> -1.0                  [0b0000]
+    __half_raw{0xbac9}, // -> -0.8480964004993439   [0b0001]
+    __half_raw{0xb8e3}, // -> -0.6106329262256622   [0b0010]
+    __half_raw{0xb75c}, // -> -0.4599952697753906   [0b0011]
+    __half_raw{0xb56f}, // -> -0.33967943489551544  [0b0100]
+    __half_raw{0xb382}, // -> -0.23460740596055984  [0b0101]
+    __half_raw{0xb06a}, // -> -0.13791173323988914  [0b0110]
+    __half_raw{0xa9d4}, // -> -0.045525018125772476 [0b0111]
+    __half_raw{0x2918}, // ->  0.03979014977812767  [0b1000]
+    __half_raw{0x2fb2}, // ->  0.1202552504837513   [0b1001]
+    __half_raw{0x3283}, // ->  0.2035212516784668   [0b1010]
+    __half_raw{0x34ac}, // ->  0.2920137718319893   [0b1011]
+    __half_raw{0x363b}, // ->  0.3893125355243683   [0b1100]
+    __half_raw{0x3803}, // ->  0.5016634166240692   [0b1101]
+    __half_raw{0x3924}, // ->  0.6427869200706482   [0b1110]
+    __half_raw{0x3ae4}, // ->  0.8614784181118011   [0b1111]
 };
 
 __device__ static float nf4_data[16] = {
@@ -104,12 +104,12 @@ __device__ float dDequantizeFP4Tree(unsigned char val, float absmax) {
         return 0.00000000f * absmax * sign; // 1000
 }
 
-__device__ __forceinline__ unsigned char dQuantizeFP4(float x) {
-    unsigned char sign = (x < 0) << 3;
-    x = fabsf(x);
-    unsigned char encoding = (fp4_quantization_pivots[4] < x) * 4;
-    encoding += (fp4_quantization_pivots[encoding + 2] < x) * 2;
-    encoding += (fp4_quantization_pivots[encoding + 1] < x) * 1;
+__device__ __forceinline__ unsigned char dQuantizeFP4(half x) {
+    unsigned char sign = __hlt(x, 0) << 3;
+    x = __habs(x);
+    unsigned char encoding = __hlt(fp4_quantization_pivots[4], x) * 4;
+    encoding += __hlt(fp4_quantization_pivots[encoding + 2], x) * 2;
+    encoding += __hlt(fp4_quantization_pivots[encoding + 1], x) * 1;
     return encoding | sign;
 }
 
@@ -159,11 +159,11 @@ __device__ __forceinline__ float dDequantizeNF4(unsigned char val) {
         return -1.0f;
 }
 
-__device__ __forceinline__ unsigned char dQuantizeNF4(float x) {
-    unsigned char encoding = (nf4_quantization_pivots[8] < x) * 8;
-    encoding += (nf4_quantization_pivots[encoding + 4] < x) * 4;
-    encoding += (nf4_quantization_pivots[encoding + 2] < x) * 2;
-    encoding += (nf4_quantization_pivots[encoding + 1] < x) * 1;
+__device__ __forceinline__ unsigned char dQuantizeNF4(half x) {
+    unsigned char encoding = __hlt(nf4_quantization_pivots[8], x) * 8;
+    encoding += __hlt(nf4_quantization_pivots[encoding + 4], x) * 4;
+    encoding += __hlt(nf4_quantization_pivots[encoding + 2], x) * 2;
+    encoding += __hlt(nf4_quantization_pivots[encoding + 1], x) * 1;
     return encoding;
 }
 
