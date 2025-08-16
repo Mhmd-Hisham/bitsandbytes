@@ -56,66 +56,35 @@ __device__ float dDequantizeFP4Tree(unsigned char val, float absmax) {
     if ((val & 0b0100) == 4)                        // 0
         if ((val & 0b0010) == 2)                    // 01
             if ((val & 0b0001) == 1)                // 111
-                return 0.25000000f * absmax * sign; // 1111
+                return 1.00000000f * absmax * sign; // 1111
             else
-                return 0.16666667f * absmax * sign; // 1110
+                return 0.66666667f * absmax * sign; // 1110
         else if ((val & 0b0001) == 1)               // 110
             return 0.50000000f * absmax * sign;     // 1101
         else
             return 0.33333333f * absmax * sign; // 1100
     else if ((val & 0b0010) == 2)               // 10
         if ((val & 0b0001) == 1)                // 101
-            return 1.00000000f * absmax * sign; // 1011
+            return 0.25000000f * absmax * sign; // 1011
         else
-            return 0.66666667f * absmax * sign;  // 1010
+            return 0.16666667f * absmax * sign;  // 1010
     else if ((val & 0b0001) == 1)                // 100
         return 5.208333333e-03f * absmax * sign; // 1001
     else
         return 0.00000000f * absmax * sign; // 1000
 }
 
-__device__ unsigned char dQuantizeFP4(float x) {
-    // FP4 with bias of 3
-    // first bit is a sign
-    // subnormals
-    // 0b000 = 0
-    // 0b001 = 0.0625
-    // 0b110 = 2
-    // 0b111 = 3
-    // 0b100 = 4
-    // 0b101 = 6
-    // 0b010 = 8
-    // 0b011 = 12
-
-    // we do a binary search
-    // the pivots are divided by 12 (the FP4 absmax)
-    // since we assume input data is in [-1.0, 1.0]
-
-    // !be careful here, its easy to make a mistake
-    // that is difficult to notice if you add an extra
-    // zero somewhere!
-
-    int sign = x < 0 ? 0b1000 : 0b0000;
+__device__ __forceinline__ unsigned char dQuantizeFP4(float x) {
+    unsigned char sign = (x < 0) << 3;
     x = fabsf(x);
-    if (x > 0.29166667f)
-        if (x > 0.583333f)
-            if (x > 0.8333333f)
-                return 0b0011 + sign;
-            else
-                return 0b0010 + sign;
-        else if (x > 0.4166667f)
-            return 0b101 + sign;
-        else
-            return 0b100 + sign;
-    else if (x > 0.0859375f)
-        if (x > 0.20833333f)
-            return 0b0111 + sign;
-        else
-            return 0b0110 + sign;
-    else if (x > 0.00260417f)
-        return 0b0001 + sign;
-    else
-        return 0b0000 + sign;
+    unsigned char encoding = (x > 0.00260417f)    // 0b001
+                             + (x > 0.08593750f)  // 0b010
+                             + (x > 0.20833333f)  // 0b011
+                             + (x > 0.29166667f)  // 0b100
+                             + (x > 0.41666670f)  // 0b101
+                             + (x > 0.58333300f)  // 0b110
+                             + (x > 0.83333330f); // 0b111
+    return encoding | sign;
 }
 
 __device__ __forceinline__ float dDequantizeNF4(unsigned char val) {
