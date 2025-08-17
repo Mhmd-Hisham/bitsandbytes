@@ -107,9 +107,9 @@ __device__ float dDequantizeFP4Tree(unsigned char val, float absmax) {
 __device__ __forceinline__ unsigned char dQuantizeFP4(half x) {
     unsigned char sign = __hlt(x, 0) << 3;
     x = __habs(x);
-    unsigned char encoding = __hlt(fp4_quantization_pivots[4], x) * 4;
-    encoding += __hlt(fp4_quantization_pivots[encoding + 2], x) * 2;
-    encoding += __hlt(fp4_quantization_pivots[encoding + 1], x) * 1;
+    unsigned char encoding = __hlt(fp4_quantization_pivots[4], x) << 2;
+    encoding |= __hlt(fp4_quantization_pivots[encoding + 2], x) << 1;
+    encoding |= __hlt(fp4_quantization_pivots[encoding + 1], x);
     return encoding | sign;
 }
 
@@ -160,10 +160,10 @@ __device__ __forceinline__ float dDequantizeNF4(unsigned char val) {
 }
 
 __device__ __forceinline__ unsigned char dQuantizeNF4(half x) {
-    unsigned char encoding = __hlt(nf4_quantization_pivots[8], x) * 8;
-    encoding += __hlt(nf4_quantization_pivots[encoding + 4], x) * 4;
-    encoding += __hlt(nf4_quantization_pivots[encoding + 2], x) * 2;
-    encoding += __hlt(nf4_quantization_pivots[encoding + 1], x) * 1;
+    unsigned char encoding = __hlt(nf4_quantization_pivots[8], x) << 3;
+    encoding |= __hlt(nf4_quantization_pivots[encoding + 4], x) << 2;
+    encoding |= __hlt(nf4_quantization_pivots[encoding + 2], x) << 1;
+    encoding |= __hlt(nf4_quantization_pivots[encoding + 1], x);
     return encoding;
 }
 
