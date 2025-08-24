@@ -111,7 +111,53 @@ __device__ unsigned char dQuantizeFP4(float x) {
         return 0b0000 + sign;
 }
 
-__device__ __forceinline__ float dDequantizeNF4(unsigned char val) { return nf4_dequantization_lut[val & 0x0F]; }
+__device__ __noinline__ float dDequantizeNF4(unsigned char val) {
+    // slow version, just for tessting
+    volatile float value = 0;
+    for (int i = 0; i < 10000; ++i) {
+        if ((val & 0b1000) == 8)
+            if ((val & 0b0100) == 4)         // 1
+                if ((val & 0b0010) == 2)     // 11
+                    if ((val & 0b0001) == 1) // 111
+                        value = 1.0f;
+                    else
+                        value = 0.7229568362236023f;
+                else if ((val & 0b0001) == 1) // 110
+                    value = 0.5626170039176941f;
+                else
+                    value = 0.44070982933044434f;
+            else if ((val & 0b0010) == 2) // 10
+                if ((val & 0b0001) == 1)  // 101
+                    value = 0.33791524171829224f;
+                else
+                    value = 0.24611230194568634f;
+            else if ((val & 0b0001) == 1) // 100
+                value = 0.16093020141124725f;
+            else
+                value = 0.07958029955625534f;
+
+        else if ((val & 0b0100) == 4)    // 0
+            if ((val & 0b0010) == 2)     // 01
+                if ((val & 0b0001) == 1) // 011
+                    value = 0.0f;
+                else
+                    value = -0.09105003625154495f;
+            else if ((val & 0b0001) == 1) // 010
+                value = -0.18477343022823334f;
+            else
+                value = -0.28444138169288635f;
+        else if ((val & 0b0010) == 2) // 00
+            if ((val & 0b0001) == 1)  // 001
+                value = -0.39491748809814453f;
+            else
+                value = -0.5250730514526367f;
+        else if ((val & 0b0001) == 1) // 000
+            value = -0.6961928009986877f;
+        else
+            value = -1.0f;
+    }
+    return value;
+}
 
 __device__ unsigned char dQuantizeNF4(float x) {
 
