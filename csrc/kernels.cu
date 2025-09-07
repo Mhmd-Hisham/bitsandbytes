@@ -20,6 +20,7 @@
 #define TH 1024
 #define NUM 4
 #define NUM_BLOCK 4096
+#define FP4_SIGN(x) (1.0f - 2 * (((x) & 0b1000) >> 3))
 
 __device__ static float fp4_dequantization_lut[8] = {
     0.0f,            // 0b000
@@ -62,10 +63,7 @@ __device__ float atomicMax(float* address, float val) {
     return __int_as_float(old);
 }
 
-__device__ __forceinline__ float dDequantizeFP4Tree(unsigned char val) {
-    float sign = 1.0f - 2 * ((val & 0b1000) >> 3);
-    return fp4_dequantization_lut[val & 0b111] * sign;
-}
+__device__ __forceinline__ float dDequantizeFP4Tree(unsigned char val) {}
 
 __device__ unsigned char dQuantizeFP4(float x) {
     // FP4 with bias of 3
@@ -111,7 +109,7 @@ __device__ unsigned char dQuantizeFP4(float x) {
         return 0b0000 + sign;
 }
 
-__device__ __forceinline__ float dDequantizeNF4(unsigned char val) { return nf4_dequantization_lut[val & 0x0F]; }
+__device__ __forceinline__ float dDequantizeNF4(unsigned char val) {}
 
 __device__ unsigned char dQuantizeNF4(float x) {
 
@@ -431,6 +429,22 @@ __global__ void
 
     __shared__ typename LoadChar::TempStorage loadchar;
     __shared__ typename StoreT::TempStorage storet;
+    __shared__ float dequantization_lut[16];
+    int lut_size = 8 + 8 * (DATA_TYPE == NF4);
+#pragma unroll
+    for (int i = threadIdx.x; i < lut_size; i += blockDim.x) {
+        switch (DATA_TYPE) {
+        case FP4:
+            dequantization_lut[i] = fp4_dequantization_lut[i];
+            break;
+        case NF4:
+            dequantization_lut[i] = nf4_dequantization_lut[i];
+            break;
+        default:
+            break; // the table is not used in this case
+        }
+    }
+    __syncthreads();
 
     for (int i = base_idx; i < n_load; i += gridDim.x * TILE_SIZE) {
         if (DATA_TYPE > 0) {
@@ -457,17 +471,20 @@ __global__ void
                 vals[j] = __ldg(&code[qvals[j]]) * local_abs_max;
             break;
         case FP4:
+            int val;
 #pragma unroll NUM_PER_TH
             for (int j = 0; j < NUM_PER_TH; j++) {
-                vals[j * 2] = dDequantizeFP4Tree(qvals[j] >> 4) * local_abs_max;
-                vals[j * 2 + 1] = dDequantizeFP4Tree(qvals[j] & 0x0F) * local_abs_max;
+                val = qvals[j] >> 4;
+                vals[j * 2] = dequantization_lut[val & 0b0111] * FP4_SIGN(val) * local_abs_max;
+                val = qvals[j] & 0x0F;
+                vals[j * 2 + 1] = dequantization_lut[val & 0b0111] * FP4_SIGN(val) * local_abs_max;
             }
             break;
         case NF4:
 #pragma unroll NUM_PER_TH
             for (int j = 0; j < NUM_PER_TH; j++) {
-                vals[j * 2] = dDequantizeNF4(qvals[j] >> 4) * local_abs_max;
-                vals[j * 2 + 1] = dDequantizeNF4(qvals[j] & 0x0F) * local_abs_max;
+                vals[j * 2] = dequantization_lut[qvals[j] >> 4] * local_abs_max;
+                vals[j * 2 + 1] = dequantization_lut[qvals[j] & 0x0F] * local_abs_max;
             }
             break;
         }
